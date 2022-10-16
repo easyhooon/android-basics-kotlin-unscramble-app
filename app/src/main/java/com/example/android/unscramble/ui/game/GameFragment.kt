@@ -38,6 +38,16 @@ class GameFragment : Fragment() {
     // Create a ViewModel the first time the fragment is created.
     // If the fragment is re-created, it receives the same GameViewModel instance created by the
     // first fragment.
+
+    // TODO by ViewModels 관련 내용 정리
+    // private val viewModel = GameViewModel()로 선언하지 않는 이유
+    // by viewModels 내부 코드를 확인해보면 팩토리를 통해 우회적으로 생성하도록 설계되어있음
+    // viewModel 은 configuration change 와 같은 상황에서 재생성이 되지 않도록
+    // 뒤집어서 얘기하면 실제로 viewModel 을 생성하는 역할을 더 상위레벨로 위임
+    // 내부 코드를 확인하면 lazy 하게 생성되는 것을 확인할 수 있음 -> 처음 사용할 때 생성
+    // 다음부터는 뷰모델의 인스턴스는 자동으로 관리 (추가적으로 학습 필요, 내용을 확실하게 설명을 할 수가 없다)
+    // 쉽게 말해선 delegate pattern 으로 viewModel 을 생성해줄 경우 default viewModelFactory 만들어줌
+    // 그 곳에선 기본적으로 StateHandler 같은 것들을 만들어줌
     private val viewModel: GameViewModel by viewModels()
 
     override fun onCreateView(
@@ -63,6 +73,11 @@ class GameFragment : Fragment() {
         // Setup a click listener for the Submit and Skip buttons.
         binding.submit.setOnClickListener { onSubmitWord() }
         binding.skip.setOnClickListener { onSkipWord() }
+
+        // 데이터바인딩이 끝나고나서 미묘한 타이밍 차이로 인해 특정값들만 업데이트가 되지 않고 화면 드로잉이 되는 경우가 존재
+        // 맨 끝에 아직 바인딩이 완전히 끝나지 않은 내용이 있다면 기다린 다음 끝내는 함수 실행
+        // 데이터바인딩 때문에 일어나는 독특한 특성이기 때문에 항상 유의
+        binding.executePendingBindings()
     }
 
     /*
@@ -101,16 +116,16 @@ class GameFragment : Fragment() {
      */
     private fun showFinalScoreDialog() {
         MaterialAlertDialogBuilder(requireContext())
-                .setTitle(getString(R.string.congratulations))
-                .setMessage(getString(R.string.you_scored, viewModel.score.value))
-                .setCancelable(false)
-                .setNegativeButton(getString(R.string.exit)) { _, _ ->
-                    exitGame()
-                }
-                .setPositiveButton(getString(R.string.play_again)) { _, _ ->
-                    restartGame()
-                }
-                .show()
+            .setTitle(getString(R.string.congratulations))
+            .setMessage(getString(R.string.you_scored, viewModel.score.value))
+            .setCancelable(false)
+            .setNegativeButton(getString(R.string.exit)) { _, _ ->
+                exitGame()
+            }
+            .setPositiveButton(getString(R.string.play_again)) { _, _ ->
+                restartGame()
+            }
+            .show()
     }
 
     /*
