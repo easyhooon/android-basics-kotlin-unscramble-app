@@ -25,8 +25,17 @@ import android.text.Spannable
 import android.text.SpannableString
 import android.text.style.TtsSpan
 import android.util.Log
-import androidx.lifecycle.*
+import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.android.unscramble.data.GameRepository
+import com.example.android.unscramble.util.Constants.CURRENT_SCRAMBLE_WORD
+import com.example.android.unscramble.util.Constants.CURRENT_WORD
+import com.example.android.unscramble.util.Constants.CURRENT_WORD_COUNT
+import com.example.android.unscramble.util.Constants.SCORE
+import com.example.android.unscramble.util.Constants.WORD_LIST
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 import java.util.*
 import kotlin.random.Random
 
@@ -51,7 +60,6 @@ class SaveableMutableStateFlow<T>(
             savedStateHandle[key] = value
         }
 
-    // 조작을 위해
     fun asStateFlow(): StateFlow<T> = state
 }
 
@@ -65,7 +73,21 @@ fun <T> SavedStateHandle.getMutableStateFlow(
 /**
  * ViewModel containing the app data and methods to process the data
  */
-class GameViewModel(private val stateHandler: SavedStateHandle) : ViewModel() {
+// Room db, dataStore 를 사용할때 applicationContext 가 필요하므로 이런 경우에 applicationContext 를 가지는 형태의 뷰모델
+// 뷰모델 위의 뷰모델을 만들 때, application 전체의 전역적인 값을 갖기위해 사용될 수 있음
+// AndroidViewModel 로 변경하면 by viewModels() 라는 delegation 함수에서 자동으로 application 을 넣어줌, stateHandler 와 마찬가지로
+// 기본적으로 viewModels 라고 하는 delegation 에서 viewModel 에 파라미터를 넣는 것을 허용하지 않는데 stateHandler 와 application 같은 경우는 자동으로 지원
+// 하지만 repository 와 같은 커스텀한 클래스를 생성자 파라미터에 주입하려면 팩토리를 커스텀하게 구현해줘야 한다.
+class GameViewModel(
+    // Factory 를 통해 application 주입
+    // application: Application,
+    private val stateHandler: SavedStateHandle,
+    // private val repository: GameRepository = GameRepository(application)
+    private val repository: GameRepository
+//) : AndroidViewModel(application) {
+) : ViewModel() {
+
+
 //    1. LiveData
 //    private val _score = MutableLiveData(0)
 //    val score: LiveData<Int>
@@ -87,10 +109,14 @@ class GameViewModel(private val stateHandler: SavedStateHandle) : ViewModel() {
 //    }
 
     //   4. Helper Class 를 통해 기존의 방식과 거의 비슷하게 선언해줄 수 있음(나머지 변수들도 똑같이 선언해줌)
-    private val _score = stateHandler.getMutableStateFlow("score", 0)
+    private val _score = stateHandler.getMutableStateFlow(SCORE, 0)
     val score: StateFlow<Int>
         get() = _score.asStateFlow()
 
+    //dataBinding 을 통해서 읽어져야하기 때문에 StateFlow
+    val highScore: StateFlow<Int> = repository.highScore.stateIn(
+        viewModelScope, SharingStarted.WhileSubscribed(), 0
+    )
 
 //    private val _currentWordCount = MutableLiveData(0)
 //    val currentWordCount: LiveData<Int>
@@ -100,7 +126,7 @@ class GameViewModel(private val stateHandler: SavedStateHandle) : ViewModel() {
 //    val currentWordCount: StateFlow<Int>
 //        get() = _currentWordCount
 
-    private val _currentWordCount = stateHandler.getMutableStateFlow("currentWordCount", 0)
+    private val _currentWordCount = stateHandler.getMutableStateFlow(CURRENT_WORD_COUNT, 0)
     val currentWordCount: StateFlow<Int>
         get() = _currentWordCount.asStateFlow()
 
@@ -108,7 +134,7 @@ class GameViewModel(private val stateHandler: SavedStateHandle) : ViewModel() {
     // stateFlow 는 initial value를 필요로 함
     // liveData 는 기본적으로 자바 기반으로 만들어져있기 때문에 nullable 처리가 따로 되어있지 않음
     // private val _currentScrambledWord = MutableStateFlow<String>("")
-    private val _currentScrambledWord = stateHandler.getMutableStateFlow("currentScrambleWord", "")
+    private val _currentScrambledWord = stateHandler.getMutableStateFlow(CURRENT_SCRAMBLE_WORD, "")
 
     // liveData 들은 xml 에서 참조가 가능
     // liveData 의 단점: Transformation 을 통해 다른 liveData 의 결과를 받거나, liveData 여러개를 조합해서 하나의 결과를 만듬
@@ -176,32 +202,33 @@ class GameViewModel(private val stateHandler: SavedStateHandle) : ViewModel() {
     // private var wordsList: MutableList<String>
     private var wordsList: List<String>
         // get() = stateHandler["wordsList"] ?: mutableListOf()
-        get() = stateHandler["wordsList"] ?: emptyList()
+        get() = stateHandler[WORD_LIST] ?: emptyList()
         set(value) {
-            stateHandler["worldList"] = value
+            stateHandler[WORD_LIST] = value
         }
 
     // private lateinit var currentWord: String
     private var currentWord: String
         // 초기 상태
-        get() = stateHandler["currentWord"] ?: ""
+        get() = stateHandler[CURRENT_WORD] ?: ""
         // 매번 대입의 형태로 값을 저장하였기 때문에
         // 액티비티가 내려갔어도 정상적으로 값 복원 가능
+        // value -> 새로운 값
         set(value) {
-            val tempWord = currentWord.toCharArray()
+            val tempWord = value.toCharArray()
             tempWord.shuffle()
             // 한번은 일어나야 하므로
             do {
                 tempWord.shuffle()
             } while (String(tempWord) == value)
-            Log.d("Unscramble", "currentWord= $currentWord")
+            Log.d("Unscramble", "currentWord= $value")
             _currentScrambledWord.value = String(tempWord)
             // _currentWordCount.value = _currentWordCount.value?.inc()
             // null 이 들어갈 수 없음
             _currentWordCount.value += 1
             // wordsList.add(currentWord)
             wordsList = wordsList + currentWord
-            stateHandler["currentWord"] = value
+            stateHandler[CURRENT_WORD] = value
         }
 
     /*
@@ -271,6 +298,10 @@ class GameViewModel(private val stateHandler: SavedStateHandle) : ViewModel() {
     private fun increaseScore() {
         //nullable 하지 않아서 ? 제거
         _score.value = _score.value.plus(SCORE_INCREASE)
+
+        viewModelScope.launch {
+            repository.updateScore(_score.value)
+        }
     }
 
     /*
@@ -304,3 +335,4 @@ class GameViewModel(private val stateHandler: SavedStateHandle) : ViewModel() {
         } else false
     }
 }
+

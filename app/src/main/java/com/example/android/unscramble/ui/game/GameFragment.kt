@@ -16,6 +16,7 @@
 
 package com.example.android.unscramble.ui.game
 
+import android.app.Application
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -48,7 +49,10 @@ class GameFragment : Fragment() {
     // 다음부터는 뷰모델의 인스턴스는 자동으로 관리 (추가적으로 학습 필요, 내용을 확실하게 설명을 할 수가 없다)
     // 쉽게 말해선 delegate pattern 으로 viewModel 을 생성해줄 경우 default viewModelFactory 만들어줌
     // 그 곳에선 기본적으로 StateHandler 같은 것들을 만들어줌
-    private val viewModel: GameViewModel by viewModels()
+    // private val viewModel: GameViewModel by viewModels()
+    private val viewModel: GameViewModel by viewModels {
+        GameViewModelFactory(requireContext().applicationContext as Application, this)
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
