@@ -34,9 +34,11 @@ import com.example.android.unscramble.util.Constants.CURRENT_WORD
 import com.example.android.unscramble.util.Constants.CURRENT_WORD_COUNT
 import com.example.android.unscramble.util.Constants.SCORE
 import com.example.android.unscramble.util.Constants.WORD_LIST
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.*
+import javax.inject.Inject
 import kotlin.random.Random
 
 
@@ -46,30 +48,6 @@ import kotlin.random.Random
 
 // 생성자로 StateHandle 만 추가해줘도 다른 처리는 해줄 필요가 없다 by keyword 를 통해 뷰모델을 생성하였으므로
 
-// StateHandler 를 사용할 경우 기존의 방식과 값을 수정하고 조작하는 과정이 달라짐
-// 기존의 방법과 일관성있는 값 수정, 사용을 위한 helper class
-class SaveableMutableStateFlow<T>(
-    private val savedStateHandle: SavedStateHandle,
-    private val key: String,
-    initialValue: T
-) {
-    private val state: StateFlow<T> = savedStateHandle.getStateFlow(key, initialValue)
-    var value: T
-        get() = state.value
-        set(value) {
-            savedStateHandle[key] = value
-        }
-
-    fun asStateFlow(): StateFlow<T> = state
-}
-
-fun <T> SavedStateHandle.getMutableStateFlow(
-    key: String,
-    initialValue: T
-): SaveableMutableStateFlow<T> =
-    SaveableMutableStateFlow(this, key, initialValue)
-
-
 /**
  * ViewModel containing the app data and methods to process the data
  */
@@ -78,7 +56,8 @@ fun <T> SavedStateHandle.getMutableStateFlow(
 // AndroidViewModel 로 변경하면 by viewModels() 라는 delegation 함수에서 자동으로 application 을 넣어줌, stateHandler 와 마찬가지로
 // 기본적으로 viewModels 라고 하는 delegation 에서 viewModel 에 파라미터를 넣는 것을 허용하지 않는데 stateHandler 와 application 같은 경우는 자동으로 지원
 // 하지만 repository 와 같은 커스텀한 클래스를 생성자 파라미터에 주입하려면 팩토리를 커스텀하게 구현해줘야 한다.
-class GameViewModel(
+@HiltViewModel
+class GameViewModel @Inject constructor(
     // Factory 를 통해 application 주입
     // application: Application,
     private val stateHandler: SavedStateHandle,

@@ -16,7 +16,6 @@
 
 package com.example.android.unscramble.ui.game
 
-import android.app.Application
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -27,10 +26,15 @@ import androidx.fragment.app.viewModels
 import com.example.android.unscramble.R
 import com.example.android.unscramble.databinding.GameFragmentBinding
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import dagger.hilt.android.AndroidEntryPoint
 
 /**
  * Fragment where the game is played, contains the game logic.
  */
+// AndroidEntryPoint
+// gradle-plugin 을 통해서 자동으로 HiltFragment 를 중간단계에서 넣어줘서 HiltFragment 를 상송받는 형태
+// HitFragment 는 내부적으로 onAttach 를 Override 해서 그 안에서 Hilt 를 위한 주입을 자동으로 넣어주고 있음
+@AndroidEntryPoint
 class GameFragment : Fragment() {
 
     // Binding object instance with access to the views in the game_fragment.xml layout
@@ -49,10 +53,15 @@ class GameFragment : Fragment() {
     // 다음부터는 뷰모델의 인스턴스는 자동으로 관리 (추가적으로 학습 필요, 내용을 확실하게 설명을 할 수가 없다)
     // 쉽게 말해선 delegate pattern 으로 viewModel 을 생성해줄 경우 default viewModelFactory 만들어줌
     // 그 곳에선 기본적으로 StateHandler 같은 것들을 만들어줌
-    // private val viewModel: GameViewModel by viewModels()
-    private val viewModel: GameViewModel by viewModels {
-        GameViewModelFactory(requireContext().applicationContext as Application, this)
-    }
+
+    // HiltViewModel 의 경우 viewModels 라는 delegation 에서 알아서 판단해서 주입해줌
+    // 명시적인 주입 필요 x
+    private val viewModel: GameViewModel by viewModels()
+
+    // Hilt 를 통해 주입받으면 되어서 생성자에 Factory 필요 x
+//    private val viewModel: GameViewModel by viewModels {
+//        GameViewModelFactory(requireContext().applicationContext as Application, this)
+//    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,

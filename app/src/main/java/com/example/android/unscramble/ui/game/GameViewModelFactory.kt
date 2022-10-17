@@ -1,13 +1,6 @@
 package com.example.android.unscramble.ui.game
 
-import android.app.Application
-import android.os.Bundle
-import androidx.lifecycle.AbstractSavedStateViewModelFactory
-import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.ViewModel
-import androidx.savedstate.SavedStateRegistryOwner
-import com.example.android.unscramble.data.GameRepository
-
+/*
 //SavedStateHandle 를 직접 팩토리를 통해 주입해주는 것은 상당한 코드가 필요하기 때문에 viewModelProvider.Factory -> AbstractSavedStateViewModelFactory 를 통해 구현
 class GameViewModelFactory(
     private val application: Application,
@@ -34,3 +27,4 @@ class GameViewModelFactory(
         // class 가 Kotlin 이 었으면 심각한 문제이지만 Java 이므로 괜춘
     }
 }
+ */

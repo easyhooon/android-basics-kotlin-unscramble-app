@@ -1,13 +1,14 @@
 package com.example.android.unscramble.data
 
-import android.app.Application
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import javax.inject.Inject
 
 
-class GameRepository(
-    application: Application,
-    private val dataSource: GameDataSource = GameDataSource(application)
+class GameRepository @Inject constructor(
+    // application: Application,
+    // private val dataSource: GameDataSource = GameDataSource(application),
+    private val dataSource: GameDataSource
 ) {
     /*
     // 단순하기 때문에 dataStore를 감출 필요가 굳이 없어서 이런식으로 구현
